@@ -15,7 +15,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use sysinfo::{CpuExt, NetworkExt, NetworksExt, ProcessExt, System, SystemExt};
-use system::SystemJson;
+use system::*;
 
 use dotenv::dotenv;
 use std::env;
@@ -27,7 +27,7 @@ type Unsigned = Vec<u64>;
 
 #[derive(Clone)]
 struct AppState {
-    tx_system: broadcast::Sender<SystemJson>,
+    tx_system: broadcast::Sender<WSSystemJson>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -37,7 +37,7 @@ struct Text(String);
 async fn main() {
     dotenv().ok();
 
-    let (tx_system, _) = broadcast::channel::<SystemJson>(1);
+    let (tx_system, _) = broadcast::channel::<WSSystemJson>(1);
 
     tracing_subscriber::fmt::init();
 
@@ -63,17 +63,17 @@ async fn main() {
             sys.refresh_memory();
             // let mut memory: Vec<u64> = vec![];
 
-            let total_memory = sys.total_memory();
             let used_memory = sys.used_memory();
-            let total_swap = sys.total_swap();
             let used_swap = sys.used_swap();
+            let total_memory = sys.total_memory();
+            let total_swap = sys.total_swap();
 
             let cpus: Vec<_> = sys.cpus().iter().map(|cpu| cpu.cpu_usage()).collect();
-            let r = SystemJson {
-                total_memory,
+            let r =WSSystemJson {
                 used_memory,
-                total_swap,
                 used_swap,
+                total_memory,
+                total_swap,
                 cpus_usage: cpus,
             };
             // let _ = tx_snap.send(cpus);
@@ -109,6 +109,23 @@ async fn realtime_stats_stream(app_state: AppState, mut ws: WebSocket) {
         ws.send(Message::Text(serde_json::to_string(&msg).unwrap()))
             .await
             .unwrap();
-        tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
     }
 }
+
+
+/*
+async fn stats_system_get() -> impl IntoResponse {
+    let mut sys = System::new();
+    sys.refresh_memory();
+
+    let total_swap = sys.total_swap();
+    let total_memory = sys.total_memory();
+    //let kernel = sys.kernel()
+
+    
+    Json(StaticSystemJson {
+        total_memory,
+        total_swap
+    })
+}
+*/

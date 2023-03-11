@@ -1,2 +1,2 @@
-cargo watch -x run &
-npm run dev --prefix frontend/
+cargo r &
+npm run --prefix frontend/ preview &
